@@ -3,6 +3,10 @@
 # AI > File name
 FILE_NAME="env-section#001:python310_any:chrome.sh"
 
+# Log function for consistent formatting
+log() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - PID:$$ - $* - SCRIPT PROMPT"
+}
 
 ### Section 02 Start: Installation of Chrome 
 log "${SCRIPT_OUTPUT} Starting Chrome and ChromeDriver installation..."
