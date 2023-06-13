@@ -9,9 +9,6 @@ log_env_section_001() {
     echo "$(date +"%Y-%m-%d %H:%M:%S") - PID:$$ - $* - ${SUB_ENV_SECTION_001_SCRIPT_ID} "
 }
 
-sudo apt-get update
-sudo apt-get install curl jq
-
 ### Section 02 Start: Installation of Chrome 
 log_env_section_001 " Starting Chrome and ChromeDriver installation..."
 
