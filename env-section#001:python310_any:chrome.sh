@@ -2,10 +2,11 @@
 
 # AI > File name
 FILE_NAME="env-section#001:python310_any:chrome.sh"
+SUB_ENV_SECTION_001_SCRIPT_ID='<SUB SCRIPT ENV_SECTION_001>'
 
 # log_env_section_001 function for consistent formatting
-log_env_section_001_env_section_001() {
-    echo "$(date +"%Y-%m-%d %H:%M:%S") - PID:$$ - $* - SCRIPT PROMPT"
+log_env_section_001() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - PID:$$ - $* - ${SUB_ENV_SECTION_001_SCRIPT_ID} "
 }
 
 ### Section 02 Start: Installation of Chrome 
