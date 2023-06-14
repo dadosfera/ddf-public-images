@@ -9,6 +9,9 @@ log_env_section_001() {
     echo "$(date +"%Y-%m-%d %H:%M:%S") - PID:$$ - $* - ${SUB_ENV_SECTION_001_SCRIPT_ID} "
 }
 
+# Check for broken dependencies
+sudo apt-get -q -y install -f libasound2 libdrm2 libgbm1 libu2f-udev libvulkan1 package xdg-utils
+
 ### Section 02 Start: Installation of Chrome 
 log_env_section_001 " Starting Chrome and ChromeDriver installation..."
 
@@ -28,8 +31,7 @@ log_env_section_001 " Install chrome dependencies"
 # Download and install Google Chrome
 wget -q https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}-1_amd64.deb
 sudo dpkg -i google-chrome-stable_${CHROME_VERSION}-1_amd64.deb
-# Check for broken dependencies
-sudo apt-get -q -y install -f
+
 
 log_env_section_001 " Download current chrome"
 
