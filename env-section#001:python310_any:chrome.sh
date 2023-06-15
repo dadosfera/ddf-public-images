@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # AI > File name
 FILE_NAME="env-section#001:python310_any:chrome.sh"
@@ -23,9 +23,12 @@ exit_on_error() {
     exit 1
 }
 
+break_flag=false
+
 break_on_error() {
     log_env_section_001 "$1"
     break_flag=true
+    continue
 }
 
 # Update package list
@@ -73,8 +76,6 @@ CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATE
 # Set chrome drive variables
 CHROMEDRIVER_URL="https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
 CHROMEDRIVER_FILE="$(basename "$CHROMEDRIVER_URL")"
-
-CHROMEDRIVER_DIR=""  # Variable to hold the successful installation directory
 CHROMEDRIVER_PATH="" # Variable to hold the successful installation path
 
 
@@ -83,31 +84,33 @@ CHROMEDRIVER_PATH="" # Variable to hold the successful installation path
 for directory in "${CHROMEDRIVER_DIRS[@]}"; do
     log_env_section_001 "Trying to install ChromeDriver in $directory"
     
-    CHROMEDRIVER_DIR="$directory"
-    CHROMEDRIVER_PATH="$directory/$CHROMEDRIVER_FILE"
+    CHROMEDRIVER_PATH="$directory"
     # Checking and creating directory if not exists
     log_env_section_001 "Checking chromedriver dir"
-    [ ! -d "$directory" ] && sudo mkdir -p "$directory" || break_on_error "Unable to create directory for chromedriver: $directory"
+    [ ! -d "$directory" ] && sudo mkdir -p "$directory" || { break_on_error "Unable to create directory for chromedriver: $directory"; continue; }
     
 
     # Download, unzip and set permissions for ChromeDriver
     log_env_section_001 "Download current chrome driver"
-    curl -o "$CHROMEDRIVER_FILE.zip" "$CHROMEDRIVER_URL" || break_on_error "ERROR: Failed to download ChromeDriver"
+    curl -o "$CHROMEDRIVER_FILE.zip" "$CHROMEDRIVER_URL" || { break_on_error "ERROR: Failed to download ChromeDriver"; continue; }
     
     log_env_section_001 "unziping ChromeDriver"
-    sudo unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_DIR" || break_on_error "ERROR: Failed to unzip ChromeDriver"
+    sudo unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_PATH" || { break_on_error "ERROR: Failed to unzip ChromeDriver"; continue; }
+
+    log_env_section_001 "changing ChromeDriver dir"
+    sudo mv $CHROMEDRIVER_FILE "$CHROMEDRIVER_PATH" || { break_on_error "ERROR: Failed move chromedriver to specified path $CHROMEDRIVER_PATH"; continue; }
 
     log_env_section_001 "setting executable permissions for ChromeDriver"
-    sudo chown root:root "$CHROMEDRIVER_PATH" || break_on_error "ERROR: Failed to set executable permissions for ChromeDriver"
+    sudo chown root:root "$CHROMEDRIVER_PATH" || { break_on_error "ERROR: Failed to set executable permissions for ChromeDriver"; continue; }
 
     log_env_section_001 "set executable permissions for dir, subdirs and ChromeDriver file"
-    sudo chmod -R +x "$directory" || break_on_error "ERROR: Failed to set executable permissions for dir, subdirs and ChromeDriver file"
+    sudo chmod -R +x "$directory" || { break_on_error "ERROR: Failed to set executable permissions for dir, subdirs and ChromeDriver file"; continue; }
 
-    sudo mv chromedriver "$CHROMEDRIVER_PATH" || break_on_error "ERROR: Failed move chromedriver to specified path $CHROMEDRIVER_PATH"
+    
     
     # Check if ChromeDriver exists at the specified path
-    if [ ! -f "$CHROMEDRIVER_PATH" ]; then
-        break_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH"
+    if [ ! -f "$CHROMEDRIVER_PATH/$CHROMEDRIVER_FILE" ]; then
+        {break_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH" ; continue; }
     fi
 
     if $break_flag ; then
@@ -123,19 +126,29 @@ done
 if $break_flag ; then
     exit_on_error "ERROR: Failed to install ChromeDriver in all directories"
 else
-    log_env_section_001 "SUCCESS: ChromeDriver installed in $CHROMEDRIVER_DIR"
+    log_env_section_001 "SUCCESS: ChromeDriver installed in $CHROMEDRIVER_PATH"
 fi
 
 
 
+CHROMEDRIVER_FULL_PATH="$CHROMEDRIVER_PATH$CHROMEDRIVER_FILE"
 
 # Add ChromeDriver to the PATH in a persistent way
-echo "export PATH=\$PATH:$CHROMEDRIVER_DIR" >> ~/.bashrc
-export PATH=$PATH:$CHROMEDRIVER_DIR
+if ! grep -q "export PATH=\$PATH:$CHROMEDRIVER_FULL_PATH" ~/.bashrc; then
+    echo "export PATH=\$PATH:$CHROMEDRIVER_FULL_PATH" >> ~/.bashrc
+fi
+
+export PATH=$PATH:$CHROMEDRIVER_PATH
 
 
 # Adding an alias for google-chrome command
-echo "alias google-chrome='command google-chrome --headless --disable-gpu --remote-debugging-port=9222'" >> ~/.bashrc
+CHROME_COMMAND="alias google-chrome='command google-chrome --headless --disable-gpu --remote-debugging-port=9222'"
+
+if ! grep -q "$CHROME_COMMAND" ~/.bashrc; then
+    echo "$CHROME_COMMAND" >> ~/.bashrc
+fi
+
+
 source ~/.bashrc
 
 log_env_section_001 "INFO: Chrome and ChromeDriver installed successfully!"
