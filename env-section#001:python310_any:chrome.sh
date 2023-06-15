@@ -23,6 +23,11 @@ exit_on_error() {
     exit 1
 }
 
+break_on_error() {
+    log_env_section_001 "$1"
+    break_flag=true
+}
+
 # Update package list
 log_env_section_001 "Updating Package List"
 sudo apt-get update -q -y || exit_on_error "Unable to update package list"
@@ -32,7 +37,7 @@ log_env_section_001 "SUCCESS: Updated Package List"
 
 # Install necessary dependencies
 log_env_section_001 "Install necessary dependencies"
-sudo apt-get -q -y --no-install-recommends install libasound2 libdrm2 libgbm1 libu2f-udev libvulkan1 xdg-utils curl jq gdebi-core || exit_on_error "Unable to install packages"
+sudo apt-get -q -y --no-install-recommends install libasound2 libdrm2 libgbm1 libu2f-udev libvulkan1 xdg-utils curl jq gdebi-core unzip || exit_on_error "Unable to install packages"
 
 log_env_section_001 "SUCCESS: necessary dependencies"
 
@@ -68,7 +73,7 @@ CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATE
 # Set chrome drive variables
 CHROMEDRIVER_URL="https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
 CHROMEDRIVER_FILE="$(basename "$CHROMEDRIVER_URL")"
-CHROMEDRIVER_PATH="$CHROMEDRIVER_DIR/$CHROMEDRIVER_FILE"
+
 CHROMEDRIVER_DIR=""  # Variable to hold the successful installation directory
 CHROMEDRIVER_PATH="" # Variable to hold the successful installation path
 
@@ -78,31 +83,48 @@ CHROMEDRIVER_PATH="" # Variable to hold the successful installation path
 for directory in "${CHROMEDRIVER_DIRS[@]}"; do
     log_env_section_001 "Trying to install ChromeDriver in $directory"
     
+    CHROMEDRIVER_DIR="$directory"
+    CHROMEDRIVER_PATH="$directory/$CHROMEDRIVER_FILE"
     # Checking and creating directory if not exists
     log_env_section_001 "Checking chromedriver dir"
-    [ ! -d "$directory" ] && sudo mkdir -p "$directory" || exit_on_error "Unable to create directory for chromedriver: $directory"
+    [ ! -d "$directory" ] && sudo mkdir -p "$directory" || break_on_error "Unable to create directory for chromedriver: $directory"
     
 
     # Download, unzip and set permissions for ChromeDriver
     log_env_section_001 "Download current chrome driver"
-    curl -o "$CHROMEDRIVER_FILE.zip" "$CHROMEDRIVER_URL" || exit_on_error "ERROR: Failed to download ChromeDriver"
+    curl -o "$CHROMEDRIVER_FILE.zip" "$CHROMEDRIVER_URL" || break_on_error "ERROR: Failed to download ChromeDriver"
     
     log_env_section_001 "unziping ChromeDriver"
-    unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_DIR" || exit_on_error "ERROR: Failed to unzip ChromeDriver"
+    sudo unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_DIR" || break_on_error "ERROR: Failed to unzip ChromeDriver"
 
     log_env_section_001 "setting executable permissions for ChromeDriver"
-    sudo chown root:root "$CHROMEDRIVER_PATH" || exit_on_error "ERROR: Failed to set executable permissions for ChromeDriver"
+    sudo chown root:root "$CHROMEDRIVER_PATH" || break_on_error "ERROR: Failed to set executable permissions for ChromeDriver"
 
     log_env_section_001 "set executable permissions for dir, subdirs and ChromeDriver file"
-    sudo chmod -R +x "$directory" || exit_on_error "ERROR: Failed to set executable permissions for dir, subdirs and ChromeDriver file"
+    sudo chmod -R +x "$directory" || break_on_error "ERROR: Failed to set executable permissions for dir, subdirs and ChromeDriver file"
 
-    sudo mv chromedriver "$CHROMEDRIVER_PATH" || exit_on_error "ERROR: Failed move chromedriver to specified path $CHROMEDRIVER_PATH"
+    sudo mv chromedriver "$CHROMEDRIVER_PATH" || break_on_error "ERROR: Failed move chromedriver to specified path $CHROMEDRIVER_PATH"
     
     # Check if ChromeDriver exists at the specified path
     if [ ! -f "$CHROMEDRIVER_PATH" ]; then
-        exit_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH"
+        break_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH"
     fi
+
+    if $break_flag ; then
+        continue
+    else
+        break_flag=false
+        break
+    fi
+
 done
+
+
+if $break_flag ; then
+    exit_on_error "ERROR: Failed to install ChromeDriver in all directories"
+else
+    log_env_section_001 "SUCCESS: ChromeDriver installed in $CHROMEDRIVER_DIR"
+fi
 
 
 
