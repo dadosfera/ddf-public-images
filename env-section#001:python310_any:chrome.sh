@@ -3,6 +3,8 @@
 # AI > File name
 FILE_NAME="env-section#001:python310_any:chrome.sh"
 SUB_ENV_SECTION_001_SCRIPT_ID='<SUB SCRIPT ENV_SECTION_001>'
+# Define ChromeDriver Directory
+CHROMEDRIVER_DIR="/usr/local/bin"
 
 # Function to log messages with consistent formatting
 log_env_section_001() {
@@ -23,7 +25,7 @@ log_env_section_001 "SUCCESS: Updated Package List"
 
 # Install necessary dependencies
 log_env_section_001 "Install necessary dependencies"
-sudo apt-get -q -y --no-install-recommends install libasound2 libdrm2 libgbm1 libu2f-udev libvulkan1 xdg-utils curl jq || exit_on_error "Unable to install packages"
+sudo apt-get -q -y --no-install-recommends install libasound2 libdrm2 libgbm1 libu2f-udev libvulkan1 xdg-utils curl jq gdebi-core || exit_on_error "Unable to install packages"
 
 log_env_section_001 "SUCCESS: necessary dependencies"
 
@@ -34,10 +36,18 @@ CHROME_VERSION=$(curl -s https://omahaproxy.appspot.com/all.json | jq -r '.[] | 
 log_env_section_001 "Chrome version is $CHROME_VERSION"
 
 
-# Download and install Google Chrome
-wget -q https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}-1_amd64.deb || exit_on_error "Unable to download Google Chrome"
-sudo dpkg -i google-chrome-stable_${CHROME_VERSION}-1_amd64.deb || exit_on_error "Unable to depackage Google Chrome"
+# Set chrome drive variables
+CHROME_URL=https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}-1_amd64.deb
+CHROME_FILE="$(basename "$CHROMEDRIVER_URL")"
+CHROME_PATH="$CHROMEDRIVER_DIR/$CHROMEDRIVER_FILE"
 
+
+# Download and install Google Chrome
+wget -q $CHROME_URL || exit_on_error "Unable to download Google Chrome"
+sudo gdebi $CHROME_FILE || exit_on_error "Unable to depackage Google Chrome"
+
+# fix broken dependencies
+sudo apt-get -f install
 
 # Set Chrome Variables
 chrome_path=$(which google-chrome || true)
@@ -70,7 +80,14 @@ sudo chmod +x "$CHROMEDRIVER_PATH" || exit_on_error "ERROR: Failed to set execut
 echo "export PATH=\$PATH:$CHROMEDRIVER_DIR" >> ~/.bashrc
 export PATH=$PATH:$CHROMEDRIVER_DIR
 
+
+# Adding an alias for google-chrome command
+echo "alias google-chrome='command google-chrome --headless --disable-gpu --remote-debugging-port=9222'" >> ~/.bashrc
+source ~/.bashrc
+
 log_env_section_001 "INFO: Chrome and ChromeDriver installed successfully!"
 log_env_section_001 "Installed Chrome version: $CHROME_VERSION"
 log_env_section_001 "Installed ChromeDriver version: $CHROMEDRIVER_VERSION"
 log_env_section_001 "Finished Chrome and ChromeDriver installation."
+
+# AI> You need to always ensure that chrome and chrome driver are in the same version
