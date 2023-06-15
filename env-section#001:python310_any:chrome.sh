@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# !/usr/bin/env bash
 
 # AI > File name
 FILE_NAME="env-section#001:python310_any:chrome.sh"
@@ -29,6 +29,13 @@ break_on_error() {
     log_env_section_001 "$1"
     break_flag=true
     continue
+}
+
+handle_break_flag() {
+    if $break_flag ; then
+        break_flag=false
+        continue
+    fi
 }
 
 # Update package list
@@ -87,30 +94,43 @@ for directory in "${CHROMEDRIVER_DIRS[@]}"; do
     CHROMEDRIVER_PATH="$directory"
     # Checking and creating directory if not exists
     log_env_section_001 "Checking chromedriver dir"
-    [ ! -d "$directory" ] && sudo mkdir -p "$directory" || { break_on_error "Unable to create directory for chromedriver: $directory"; continue; }
+    [ ! -d "$directory" ] && sudo mkdir -p "$directory" || break_on_error "Unable to create directory for chromedriver: $directory"
     
+    handle_break_flag
 
     # Download, unzip and set permissions for ChromeDriver
     log_env_section_001 "Download current chrome driver"
-    curl -o "$CHROMEDRIVER_FILE.zip" "$CHROMEDRIVER_URL" || { break_on_error "ERROR: Failed to download ChromeDriver"; continue; }
+    curl -o "$CHROMEDRIVER_FILE.zip" "$CHROMEDRIVER_URL" || break_on_error "ERROR: Failed to download ChromeDriver"
+
+    handle_break_flag
     
     log_env_section_001 "unziping ChromeDriver"
-    sudo unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_PATH" || { break_on_error "ERROR: Failed to unzip ChromeDriver"; continue; }
+    sudo unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_PATH" || break_on_error "ERROR: Failed to unzip ChromeDriver"
+
+    handle_break_flag
 
     log_env_section_001 "changing ChromeDriver dir"
-    sudo mv $CHROMEDRIVER_FILE "$CHROMEDRIVER_PATH" || { break_on_error "ERROR: Failed move chromedriver to specified path $CHROMEDRIVER_PATH"; continue; }
+    sudo mv $CHROMEDRIVER_FILE "$CHROMEDRIVER_PATH" || break_on_error "ERROR: Failed move chromedriver to specified path $CHROMEDRIVER_PATH"
+
+    handle_break_flag
 
     log_env_section_001 "setting executable permissions for ChromeDriver"
-    sudo chown root:root "$CHROMEDRIVER_PATH" || { break_on_error "ERROR: Failed to set executable permissions for ChromeDriver"; continue; }
+    sudo chown root:root "$CHROMEDRIVER_PATH" || break_on_error "ERROR: Failed to set executable permissions for ChromeDriver"
+
+    handle_break_flag
 
     log_env_section_001 "set executable permissions for dir, subdirs and ChromeDriver file"
-    sudo chmod -R +x "$directory" || { break_on_error "ERROR: Failed to set executable permissions for dir, subdirs and ChromeDriver file"; continue; }
+    sudo chmod -R +x "$directory" || break_on_error "ERROR: Failed to set executable permissions for dir, subdirs and ChromeDriver file"
+
+    handle_break_flag
 
     
     
     # Check if ChromeDriver exists at the specified path
     if [ ! -f "$CHROMEDRIVER_PATH/$CHROMEDRIVER_FILE" ]; then
-        {break_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH" ; continue; }
+        break_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH" 
+
+        handle_break_flag
     fi
 
     if $break_flag ; then
