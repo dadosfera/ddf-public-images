@@ -4,13 +4,13 @@
 FILE_NAME="env-section#001:python310_any:chrome.sh"
 SUB_ENV_SECTION_001_SCRIPT_ID='<SUB SCRIPT ENV_SECTION_001>'
 # Define ChromeDriver Directory
-CHROMEDRIVER_DIRS = [
+CHROMEDRIVER_DIRS=(
     "/usr/local/bin/",
     "/usr/bin/",
     "/usr/sbin/",
     "/bin/",
     "/sbin/"
-]
+)
 
 
 # Function to log messages with consistent formatting
@@ -69,6 +69,9 @@ CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATE
 CHROMEDRIVER_URL="https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
 CHROMEDRIVER_FILE="$(basename "$CHROMEDRIVER_URL")"
 CHROMEDRIVER_PATH="$CHROMEDRIVER_DIR/$CHROMEDRIVER_FILE"
+CHROMEDRIVER_DIR=""  # Variable to hold the successful installation directory
+CHROMEDRIVER_PATH="" # Variable to hold the successful installation path
+
 
 
 # Try installing ChromeDriver in each directory
@@ -84,10 +87,13 @@ for directory in "${CHROMEDRIVER_DIRS[@]}"; do
     log_env_section_001 "Download current chrome driver"
     curl -o "$CHROMEDRIVER_FILE.zip" "$CHROMEDRIVER_URL" || exit_on_error "ERROR: Failed to download ChromeDriver"
     
+    log_env_section_001 "unziping ChromeDriver"
     unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_DIR" || exit_on_error "ERROR: Failed to unzip ChromeDriver"
 
+    log_env_section_001 "setting executable permissions for ChromeDriver"
     sudo chown root:root "$CHROMEDRIVER_PATH" || exit_on_error "ERROR: Failed to set executable permissions for ChromeDriver"
 
+    log_env_section_001 "set executable permissions for dir, subdirs and ChromeDriver file"
     sudo chmod -R +x "$directory" || exit_on_error "ERROR: Failed to set executable permissions for dir, subdirs and ChromeDriver file"
 
     sudo mv chromedriver "$CHROMEDRIVER_PATH" || exit_on_error "ERROR: Failed move chromedriver to specified path $CHROMEDRIVER_PATH"
@@ -96,7 +102,7 @@ for directory in "${CHROMEDRIVER_DIRS[@]}"; do
     if [ ! -f "$CHROMEDRIVER_PATH" ]; then
         exit_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH"
     fi
-
+done
 
 
 
