@@ -38,25 +38,24 @@ log_env_section_001 "Chrome version is $CHROME_VERSION"
 
 # Set chrome drive variables
 CHROME_URL=https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}-1_amd64.deb
-CHROME_FILE="$(basename "$CHROMEDRIVER_URL")"
-CHROME_PATH="$CHROMEDRIVER_DIR/$CHROMEDRIVER_FILE"
+CHROME_FILE="$(basename "$CHROME_URL")"
 
 
 # Download and install Google Chrome
 wget -q $CHROME_URL || exit_on_error "Unable to download Google Chrome"
-sudo gdebi $CHROME_FILE || exit_on_error "Unable to depackage Google Chrome"
+sudo gdebi -n $CHROME_FILE || exit_on_error "Unable to depackage Google Chrome"
 
 # fix broken dependencies
-sudo apt-get -f install
+sudo apt-get install -f -y
 
 # Set Chrome Variables
 chrome_path=$(which google-chrome || true)
-CHROME_VERSION_SHORT=${CHROME_VERSION%%.*}
-CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION_SHORT")
-
 if [ -z "$chrome_path" ]; then
     exit_on_error "ERROR: Chrome binary not found"
 fi
+CHROME_VERSION_SHORT=${CHROME_VERSION%%.*}
+CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION_SHORT")
+
 
 
 # Set chrome drive variables
@@ -73,6 +72,12 @@ log_env_section_001 "Checking chromedriver dir"
 unzip "$CHROMEDRIVER_FILE.zip" -d "$CHROMEDRIVER_DIR" || exit_on_error "ERROR: Failed to unzip ChromeDriver"
 
 sudo mv chromedriver "$CHROMEDRIVER_PATH"
+# Check if ChromeDriver exists at the specified path
+if [ ! -f "$CHROMEDRIVER_PATH" ]; then
+    exit_on_error "ERROR: ChromeDriver not found at $CHROMEDRIVER_PATH"
+fi
+
+
 sudo chown root:root "$CHROMEDRIVER_PATH"
 sudo chmod +x "$CHROMEDRIVER_PATH" || exit_on_error "ERROR: Failed to set executable permissions for ChromeDriver"
 
