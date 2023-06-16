@@ -1,5 +1,6 @@
 # !/usr/bin/env bash
 
+# TODO understand a better way to use continue for the loop
 # AI > File name
 FILE_NAME="env-section#001:python310_any:chrome.sh"
 SUB_ENV_SECTION_001_SCRIPT_ID='<SUB SCRIPT ENV_SECTION_001>'
