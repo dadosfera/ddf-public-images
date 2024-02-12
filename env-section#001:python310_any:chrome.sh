@@ -49,6 +49,7 @@ log_env_section_001 "SUCCESS: Updated Package List"
 # Install necessary dependencies
 log_env_section_001 "Install necessary dependencies"
 sudo apt-get -q -y --no-install-recommends install libasound2 libdrm2 libgbm1 libu2f-udev libvulkan1 xdg-utils curl jq gdebi-core unzip || exit_on_error "Unable to install packages"
+sudo apt-get install libappindicator1 xvfb -y
 
 log_env_section_001 "SUCCESS: necessary dependencies"
 
