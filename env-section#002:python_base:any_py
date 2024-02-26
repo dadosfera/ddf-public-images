@@ -1,0 +1,160 @@
+#!/bin/bash
+
+
+FILE_NAME="env-section#002:python_base:any_py"
+PRIVATE_IMAGE="env#002:py310_autogpt:python_base"
+SCRIPT_ID="<script env#002 log msg>"
+ENV_NAME="py310"
+# Define paths for Conda and Mamba initialization scriptsc considering Orchest
+CONDA_PATH="/opt/conda/etc/profile.d/conda.sh"
+MAMBA_PATH="/opt/conda/etc/profile.d/mamba.sh"
+CURRENT_USER=$(whoami)
+HOME_DIR="/home/${CURRENT_USER}"
+BASHRC_PATH="${HOME_DIR}/.bashrc"
+ORCHESTRC_PATH="${HOME_DIR}/.orchestrc"
+
+
+# Log function for consistent formatting
+log() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - PID:$$ - ${SCRIPT_ID} - $*"
+}
+
+# APT packages
+### sudo apt-get update
+### sudo apt-get install -q -y curl jq
+### sudo apt-get install -f 
+
+
+
+# TODO: create a generic functon to check all paths and to execute some action if the path or file is not available
+# Function to check, set, and source paths for Conda and Mamba
+check_and_set_paths() {
+    # Check and set the Conda path
+    if [ ! -f "$CONDA_PATH" ]; then
+        CONDA_PATH=$(find /opt/conda -name 'conda.sh' | head -n 1)
+        if [ -z "$CONDA_PATH" ] || [ ! -f "$CONDA_PATH" ]; then
+            log "Error: Conda initialization script not found."
+            exit 1
+        fi
+    fi
+    log "Conda initialization script found at $CONDA_PATH"
+    source "$CONDA_PATH"
+    log "Conda environment initialized."
+
+    # Check and set the Mamba path
+    if [ ! -f "$MAMBA_PATH" ]; then
+        MAMBA_PATH=$(find /opt/conda -name 'mamba.sh' | head -n 1)
+        if [ -z "$MAMBA_PATH" ] || [ ! -f "$MAMBA_PATH" ]; then
+            log "Error: Mamba initialization script not found."
+            exit 1
+        fi
+    fi
+    log "Mamba initialization script found at $MAMBA_PATH"
+    source "$MAMBA_PATH"
+    log "Mamba environment initialized."
+
+    # Ensure .bashrc and .orchestrc exist
+    [ ! -f "$BASHRC_PATH" ] && touch "$BASHRC_PATH" && log ".bashrc file created at $BASHRC_PATH"
+    [ ! -f "$ORCHESTRC_PATH" ] && touch "$ORCHESTRC_PATH" && log ".orchestrc file created at $ORCHESTRC_PATH"
+}
+
+# Call the function to check and set paths
+check_and_set_paths
+
+## Install Python 3.10 and minimum set of dependencies
+mamba create -y -n py310 python=3.10 future
+if [ $? -eq 0 ]; then
+    log "Python 3.10 installed successfully"
+else
+    log "Python 3.10 installation failed"
+    exit 1
+fi
+
+if command -v mamba &> /dev/null
+then
+    log "Mamba installed successfully"
+else
+    log "Mamba installation failed"
+    exit 1
+fi
+
+## Minimum dependencies for Orchest compability with new python version
+mamba install -y -n py310 ipykernel jupyter_client ipython_genutils pycryptodomex "pyarrow<8.0,>=1.0.0" future
+mamba run -n py310 pip install orchest
+
+# Environment Variables Section
+
+# Backup Mechanism for .bashrc and .orchestrc
+cp "${HOME_DIR}/.bashrc" "${HOME_DIR}/.bashrc.backup"
+cp "${HOME_DIR}/.orchestrc" "${HOME_DIR}/.orchestrc.backup" 2>/dev/null || :
+trap 'cp "${HOME_DIR}/.bashrc.backup" "${HOME_DIR}/.bashrc"; cp "${HOME_DIR}/.orchestrc.backup" "${HOME_DIR}/.orchestrc" 2>/dev/null || :; log "Script failed. .bashrc and .orchestrc restored from backup."; exit 1' ERR
+
+# Set mamba config and env
+# First, comment out existing "conda activate" or "mamba activate" lines
+if grep -qE "conda activate|mamba activate" "$BASHRC_PATH"; then
+    sed -i '/conda activate\|mamba activate/s/^/#/' "$BASHRC_PATH"
+    log "Existing environment activation commands in .bashrc have been commented out."
+fi
+
+# Now, append the new activation command if not already present
+if ! grep -q "conda activate $ENV_NAME" "$BASHRC_PATH"; then
+    echo "# Activate the $ENV_NAME environment automatically" >> "$BASHRC_PATH"
+    echo "source $CONDA_PATH" >> "$BASHRC_PATH"
+    echo "conda activate $ENV_NAME" >> "$BASHRC_PATH"
+    log "$ENV_NAME environment will now automatically activate for all new sessions."
+else
+    log "The $ENV_NAME environment is already set to activate for all new sessions."
+fi
+
+# # Set mamba config and env
+# if ! grep -q "mamba.sh" /home/${CURRENT_USER}/.bashrc; then
+#     	# Source the mamba initialization script
+#         source "$MAMBA_INIT_SCRIPT"
+
+#         # Activate the py310 environment
+#         mamba activate py310
+#         if [ $? -ne 0 ]; then
+#    	 		log "Failed to activate Mamba environment py310"
+#     		exit 1
+# 		fi
+
+
+#         # Check if the active environment is py310
+#         if [[ $CONDA_DEFAULT_ENV == "py310" ]]; then
+#             # If yes, add the necessary lines to .bashrc
+#             echo 'source /opt/conda/etc/profile.d/mamba.sh' >> /home/${CURRENT_USER}/.bashrc
+#             echo 'mamba activate py310' >> /home/${CURRENT_USER}/.bashrc
+#             log "py310 environment successfully activated and configured in .bashrc"
+#         else
+#             # If no, print a warning message
+#             log "Warning: The py310 environment was not successfully activated."
+#         fi
+#     else
+#         log "Error: Mamba initialization script not found."
+#     fi
+# fi
+
+
+# # Log the current user
+# log "Current user is ${CURRENT_USER}"
+
+# # Append Jupyter and Orchest environment variables to .orchestrc and .bashrc for persistence
+# echo "export JUPYTER_PATH=/opt/conda/envs/${ENV_NAME}/share/jupyter" | tee -a ${ORCHESTRC_PATH} >> ${BASHRC_PATH}
+# echo "export PATH=/opt/conda/envs/${ENV_NAME}/bin:\${PATH}" | tee -a ${ORCHESTRC_PATH} >> ${BASHRC_PATH}
+# echo "export CONDA_ENV=${ENV_NAME}" | tee -a ${ORCHESTRC_PATH} >> ${BASHRC_PATH}
+
+# log "Jupyter and Orchest environment variables set for user ${CURRENT_USER} and appended to .bashrc and .orchestrc for persistence"
+
+# # Source the Orchest environment variables from .orchestrc
+# if [ -f "${ORCHESTRC_PATH}" ]; then
+#     source ${ORCHESTRC_PATH}
+#     log "Sourced Orchest environment variables for user ${CURRENT_USER}"
+# else
+#     log "Error: ${ORCHESTRC_PATH} does not exist."
+# fi
+
+# # TODO move best-practice  to test the source and activate first and then only if success add to .bashrc to all envs
+
+log " Success: finished script"
+# it is important to finish the script returning 0 code to end the intelligence and processing Dadosfera module successfully
+exit 0
