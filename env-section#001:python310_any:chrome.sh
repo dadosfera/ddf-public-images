@@ -1,7 +1,26 @@
 # !/usr/bin/env bash
 
-# TODO understand a better way to use continue for the loop
-# AI > File name
+# TODO always use TODO to show uncomplete work or future work that is not assigned to a GIT Issue
+# AI > File name is a parameter from a standard header's Dadosfera
+
+# Dadosfera Standard Header
+FILE_NAME="env-section#001:python310_any:chrome.sh"
+SCRIPT_ID="<script env-section#001 log msg>"
+ENV_NAME="none"
+# Define paths for Conda and Mamba initialization scriptsc considering Orchest
+CONDA_PATH="/opt/conda/etc/profile.d/conda.sh"
+MAMBA_PATH="/opt/conda/etc/profile.d/mamba.sh"
+CURRENT_USER=$(whoami)
+HOME_DIR="/home/${CURRENT_USER}"
+BASHRC_PATH="${HOME_DIR}/.bashrc"
+ORCHESTRC_PATH="${HOME_DIR}/.orchestrc"
+
+
+# Log function for consistent formatting
+log() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - PID:$$ - ${SCRIPT_ID} - $*"
+}
+
 FILE_NAME="env-section#001:python310_any:chrome.sh"
 SUB_ENV_SECTION_001_SCRIPT_ID='<SUB SCRIPT ENV_SECTION_001>'
 # Define ChromeDriver Directory
